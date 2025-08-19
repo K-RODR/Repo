@@ -1,6 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="https://apis.google.com/js/api.js"></script>
+<script>
+  const CLIENT_ID = "513988292696-si4qkesgks11ohecii6o6frknsnjka71.apps.googleusercontent.com";  // Paste your Google OAuth client ID
+  const API_KEY = "";  // Optional if you created one
+  const SCOPES = "https://www.googleapis.com/auth/drive.file";
+
+  function handleClientLoad() {
+    gapi.load("client:auth2", initClient);
+  }
+
+  function initClient() {
+    gapi.client.init({
+      apiKey: API_KEY,
+      clientId: CLIENT_ID,
+      discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
+      scope: SCOPES
+    }).then(() => {
+      const authInstance = gapi.auth2.getAuthInstance();
+      authInstance.isSignedIn.listen(updateSigninStatus);
+      updateSigninStatus(authInstance.isSignedIn.get());
+    });
+  }
+
+  function updateSigninStatus(isSignedIn) {
+    if (isSignedIn) {
+      console.log("Signed in!");
+    } else {
+      console.log("Not signed in.");
+    }
+  }
+
+  function handleAuthClick() {
+    gapi.auth2.getAuthInstance().signIn();
+  }
+
+  function handleSignoutClick() {
+    gapi.auth2.getAuthInstance().signOut();
+  }
+</script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>JEE Planner — Modern</title>
@@ -368,5 +407,8 @@
     function init(){ renderAll(); }
     init();
   </script>
+  <button onclick="handleAuthClick()">Sign in with Google</button>
+<button onclick="handleSignoutClick()">Sign out</button>
+<script async defer onload="handleClientLoad()" src="https://apis.google.com/js/api.js"></script>
 </body>
 </html>
