@@ -3,8 +3,7 @@
 <head>
   <script src="https://apis.google.com/js/api.js"></script>
 <script>
-  const CLIENT_ID = "513988292696-si4qkesgks11ohecii6o6frknsnjka71.apps.googleusercontent.com";  // Paste your Google OAuth client ID
-  const API_KEY = "";  // Optional if you created one
+  const CLIENT_ID = "513988292696-si4qkesgks11ohecii6o6frknsnjka71.apps.googleusercontent.com";  // Paste your Google OAuth 
   const SCOPES = "https://www.googleapis.com/auth/drive.file";
 
   function handleClientLoad() {
