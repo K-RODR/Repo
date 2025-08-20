@@ -3,14 +3,14 @@
 <head>
   <script src="https://apis.google.com/js/api.js"></script>
 <script>
-  const CLIENT_ID = "513988292696-si4qkesgks11ohecii6o6frknsnjka71.apps.googleusercontent.com";
+  const CLIENT_ID = "513988292696-si4qkesgks11ohecii6o6frknsnjka71.apps.googleusercontent.com"; [cite_start]// [cite: 135]
   // IMPORTANT: Replace with your Google API Key
   const API_KEY = "AIzaSyB57eUdyuw5pb_2XTXS_qX0gry4YkslpHQ";
-  const SCOPES = "https://www.googleapis.com/auth/drive.file";
-  const SYNC_FILE_NAME = "jee_planner_data.json";
+  const SCOPES = "https://www.googleapis.com/auth/drive.file"; [cite_start]// [cite: 136]
+  const SYNC_FILE_NAME = "jee_planner_data.json"; [cite_start]// [cite: 137]
 
   function handleClientLoad() {
-    gapi.load("client:auth2", initClient);
+    gapi.load("client:auth2", initClient); [cite_start]// [cite: 137]
   }
 
   function initClient() {
@@ -27,35 +27,33 @@
         loadFromDrive();
       }
     }).catch(function(error) {
-        console.error("Error initializing client", error);
+        [cite_start]console.error("Error initializing client", error); // [cite: 139]
     });
   }
 
-  '''javascript
   function updateSigninStatus(isSignedIn) {
     if (isSignedIn) {
       console.log("Signed in!");
-      $('#signInBtn').classList.add('hidden');
+      $('#signInBtn').classList.add('hidden'); [cite_start]// [cite: 140]
       $('#signOutBtn').classList.remove('hidden');
       // Fetch and display the user's email
       const user = gapi.auth2.getAuthInstance().currentUser.get();
-      const profile = user.getBasicProfile();
+      const profile = user.getBasicProfile(); [cite_start]// [cite: 141]
       // Prevent adding duplicate elements
       let userIdElement = document.getElementById('googleUserId');
-      if (!userIdElement) {
+      [cite_start]if (!userIdElement) { // [cite: 142]
         userIdElement = document.createElement('div');
         userIdElement.id = 'googleUserId';
-        userIdElement.className = 'text-sm text-slate-500 ml-2';
+        userIdElement.className = 'text-sm text-slate-500 ml-2'; [cite_start]// [cite: 143]
         $('#signOutBtn').parentNode.insertBefore(userIdElement, $('#signOutBtn'));
       }
       userIdElement.textContent = `Signed in as: ${profile.getEmail()}`;
-
     } else {
-      console.log("Not signed in.");
+      console.log("Not signed in."); [cite_start]// [cite: 144]
       $('#signInBtn').classList.remove('hidden');
       $('#signOutBtn').classList.add('hidden');
       const userIdElement = document.getElementById('googleUserId');
-      if (userIdElement) {
+      [cite_start]if (userIdElement) { // [cite: 145]
         userIdElement.remove();
       }
     }
@@ -76,7 +74,7 @@
   }
 
   function handleSignoutClick() {
-    gapi.auth2.getAuthInstance().signOut();
+    gapi.auth2.getAuthInstance().signOut(); [cite_start]// [cite: 149]
   }
 
   async function findFileInDrive() {
@@ -86,59 +84,58 @@
         spaces: 'appDataFolder',
         fields: 'files(id, name)',
       });
-      return response.result.files.length > 0 ? response.result.files[0].id : null;
+      return response.result.files.length > 0 ? response.result.files[0].id : null; [cite_start]// [cite: 150]
     } catch (error) {
       console.error("Error finding file:", error);
-      return null;
+      return null; [cite_start]// [cite: 151]
     }
   }
 
   async function loadFromDrive() {
     const statusEl = $('#syncStatus');
-    statusEl.textContent = 'Restoring from Drive...';
+    statusEl.textContent = 'Restoring from Drive...'; [cite_start]// [cite: 152]
     try {
       const fileId = await findFileInDrive();
-      if (fileId) {
+      [cite_start]if (fileId) { // [cite: 153]
         const response = await gapi.client.drive.files.get({
           fileId: fileId,
           alt: 'media'
         });
-        const driveState = JSON.parse(response.body);
+        const driveState = JSON.parse(response.body); [cite_start]// [cite: 154]
         Object.assign(state, driveState);
         saveStateToLocal(state); // Save to local storage as fallback/cache
         renderAll();
-        statusEl.textContent = 'Synced with Drive ✅';
+        statusEl.textContent = 'Synced with Drive ✅'; [cite_start]// [cite: 155]
       } else {
-        statusEl.textContent = 'No file found on Drive. Using local data.';
+        statusEl.textContent = 'No file found on Drive. Using local data.'; [cite_start]// [cite: 156]
       }
     } catch (error) {
       console.error("Error loading from Drive:", error);
-      statusEl.textContent = 'Sync failed. Check console.';
+      statusEl.textContent = 'Sync failed. Check console.'; [cite_start]// [cite: 157]
     }
   }
 
   async function saveToDrive() {
     const statusEl = $('#syncStatus');
-    statusEl.textContent = 'Syncing...';
+    statusEl.textContent = 'Syncing...'; [cite_start]// [cite: 158]
     try {
       const fileId = await findFileInDrive();
-      const content = JSON.stringify(state, null, 2);
+      const content = JSON.stringify(state, null, 2); [cite_start]// [cite: 159]
       const metadata = {
         'name': SYNC_FILE_NAME,
         'mimeType': 'application/json',
       };
-
       // Add the appDataFolder parent only when creating a new file
-      if (!fileId) {
+      [cite_start]if (!fileId) { // [cite: 160]
         metadata.parents = ['appDataFolder'];
       }
 
       const form = new FormData();
       form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-      form.append('file', new Blob([content], { type: 'application/json' }));
+      form.append('file', new Blob([content], { type: 'application/json' })); [cite_start]// [cite: 162]
 
       const method = fileId ? 'PATCH' : 'POST';
-      const path = fileId ? `/upload/drive/v3/files/${fileId}` : '/upload/drive/v3/files';
+      const path = fileId ? `/upload/drive/v3/files/${fileId}` : '/upload/drive/v3/files'; [cite_start]// [cite: 163]
 
       await gapi.client.request({
         path: path,
@@ -147,13 +144,12 @@
         headers: { 'Content-Type': 'multipart/related;' },
         body: form
       });
-      statusEl.textContent = 'Synced with Drive ✅';
+      statusEl.textContent = 'Synced with Drive ✅'; [cite_start]// [cite: 164]
     } catch (error) {
       console.error("Error saving to Drive:", error);
-      statusEl.textContent = 'Sync failed. Check console.';
+      statusEl.textContent = 'Sync failed. Check console.'; [cite_start]// [cite: 165]
     }
   }
-  '''
 </script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
