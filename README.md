@@ -31,6 +31,7 @@
     });
   }
 
+  '''javascript
   function updateSigninStatus(isSignedIn) {
     if (isSignedIn) {
       console.log("Signed in!");
@@ -59,7 +60,7 @@
       }
     }
   }
-
+'''
   function handleAuthClick() {
     if (gapi.auth2.getAuthInstance().isSignedIn.get()) {
         gapi.auth2.getAuthInstance().signOut();
