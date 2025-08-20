@@ -1,82 +1,70 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="https://apis.google.com/js/api.js"></script>
+  <!-- Add this script block after your other imports in <head> -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js"></script>
 <script>
-  const CLIENT_ID = "513988292696-si4qkesgks11ohecii6o6frknsnjka71.apps.googleusercontent.com"; [cite_start]// [cite: 135]
-  // IMPORTANT: Replace with your Google API Key
-  const API_KEY = "AIzaSyB57eUdyuw5pb_2XTXS_qX0gry4YkslpHQ";
-  const SCOPES = "https://www.googleapis.com/auth/drive.file"; [cite_start]// [cite: 136]
-  const SYNC_FILE_NAME = "jee_planner_data.json"; [cite_start]// [cite: 137]
+  // Google Auth & Drive Sync (2025+ compatible, mobile/tablet friendly)
+  // CONFIG: Replace with your own values from Google Cloud Console
+  const CLIENT_ID = "513988292696-si4qkesgks11ohecii6o6frknsnjka71.apps.googleusercontent.com";
+  const API_KEY = "AIzaSyB57eUdyuw5pb_2XTXS_qX0gry4YkslpHQ"; // <-- Replace with your real API key
+  const SCOPES = "https://www.googleapis.com/auth/drive.file";
+  const SYNC_FILE_NAME = "jee_planner_data.json";
+  let tokenClient, gapiInited = false, userEmail = "";
 
-  function handleClientLoad() {
-    gapi.load("client:auth2", initClient); [cite_start]// [cite: 137]
-  }
-
-  function initClient() {
-    gapi.client.init({
-      apiKey: API_KEY,
-      clientId: CLIENT_ID,
-      discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
-      scope: SCOPES
-    }).then(() => {
-      const authInstance = gapi.auth2.getAuthInstance();
-      authInstance.isSignedIn.listen(updateSigninStatus);
-      updateSigninStatus(authInstance.isSignedIn.get());
-      if (authInstance.isSignedIn.get()) {
-        loadFromDrive();
-      }
-    }).catch(function(error) {
-        [cite_start]console.error("Error initializing client", error); // [cite: 139]
+  // Initialize GAPI and GIS after window load for mobile compatibility
+  window.onload = () => {
+    gapi.load('client', async () => {
+      await gapi.client.init({ apiKey: API_KEY, discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"] });
+      gapiInited = true;
     });
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: async (tokenResponse) => {
+        if(tokenResponse && tokenResponse.access_token){
+          gapi.client.setToken(tokenResponse);
+          await fetchUserProfile();
+          showLoginStatus(true);
+          loadFromDrive();
+        }
+      }
+    });
+  };
+
+  // Show/hide buttons, show email
+  function showLoginStatus(isSignedIn) {
+    document.getElementById('signInBtn').classList.toggle('hidden', isSignedIn);
+    document.getElementById('signOutBtn').classList.toggle('hidden', !isSignedIn);
+    document.getElementById('userEmail').textContent = isSignedIn ? `Logged in as: ${userEmail}` : "";
+    const syncStatus = document.getElementById('syncStatus');
+    if(syncStatus) syncStatus.textContent = isSignedIn ? 'Synced with Drive ✅' : 'Not synced. Sign in to enable.';
   }
 
-  function updateSigninStatus(isSignedIn) {
-    if (isSignedIn) {
-      console.log("Signed in!");
-      $('#signInBtn').classList.add('hidden'); [cite_start]// [cite: 140]
-      $('#signOutBtn').classList.remove('hidden');
-      // Fetch and display the user's email
-      const user = gapi.auth2.getAuthInstance().currentUser.get();
-      const profile = user.getBasicProfile(); [cite_start]// [cite: 141]
-      // Prevent adding duplicate elements
-      let userIdElement = document.getElementById('googleUserId');
-      [cite_start]if (!userIdElement) { // [cite: 142]
-        userIdElement = document.createElement('div');
-        userIdElement.id = 'googleUserId';
-        userIdElement.className = 'text-sm text-slate-500 ml-2'; [cite_start]// [cite: 143]
-        $('#signOutBtn').parentNode.insertBefore(userIdElement, $('#signOutBtn'));
-      }
-      userIdElement.textContent = `Signed in as: ${profile.getEmail()}`;
-    } else {
-      console.log("Not signed in."); [cite_start]// [cite: 144]
-      $('#signInBtn').classList.remove('hidden');
-      $('#signOutBtn').classList.add('hidden');
-      const userIdElement = document.getElementById('googleUserId');
-      [cite_start]if (userIdElement) { // [cite: 145]
-        userIdElement.remove();
-      }
+  // Fetch user's email after login
+  async function fetchUserProfile() {
+    try {
+      const res = await gapi.client.drive.about.get({ fields: "user" });
+      userEmail = res.result.user.emailAddress || "";
+    } catch (e) {
+      userEmail = "";
     }
   }
 
-  function handleAuthClick() {
-    if (gapi.auth2.getAuthInstance().isSignedIn.get()) {
-        gapi.auth2.getAuthInstance().signOut();
-    } else {
-        gapi.auth2.getAuthInstance().signIn()
-        .then(function() {
-            console.log("Sign-in successful");
-            loadFromDrive();
-        }, function(error) {
-            console.error("Error signing in", error);
-        });
-    }
-  }
+  // Sign in/out handlers
+  document.getElementById('signInBtn').addEventListener('click', () => {
+    tokenClient.requestAccessToken();
+  });
+  document.getElementById('signOutBtn').addEventListener('click', () => {
+    google.accounts.oauth2.revoke(gapi.client.getToken().access_token, () => {
+      gapi.client.setToken('');
+      userEmail = "";
+      showLoginStatus(false);
+    });
+  });
 
-  function handleSignoutClick() {
-    gapi.auth2.getAuthInstance().signOut(); [cite_start]// [cite: 149]
-  }
-
+  // ----------- Drive Sync Logic -----------
   async function findFileInDrive() {
     try {
       const response = await gapi.client.drive.files.list({
@@ -84,59 +72,48 @@
         spaces: 'appDataFolder',
         fields: 'files(id, name)',
       });
-      return response.result.files.length > 0 ? response.result.files[0].id : null; [cite_start]// [cite: 150]
+      return response.result.files.length > 0 ? response.result.files[0].id : null;
     } catch (error) {
-      console.error("Error finding file:", error);
-      return null; [cite_start]// [cite: 151]
+      return null;
     }
   }
 
   async function loadFromDrive() {
-    const statusEl = $('#syncStatus');
-    statusEl.textContent = 'Restoring from Drive...'; [cite_start]// [cite: 152]
+    const statusEl = document.getElementById('syncStatus');
+    if(statusEl) statusEl.textContent = 'Restoring from Drive...';
     try {
       const fileId = await findFileInDrive();
-      [cite_start]if (fileId) { // [cite: 153]
+      if (fileId) {
         const response = await gapi.client.drive.files.get({
           fileId: fileId,
           alt: 'media'
         });
-        const driveState = JSON.parse(response.body); [cite_start]// [cite: 154]
+        const driveState = JSON.parse(response.body);
         Object.assign(state, driveState);
-        saveStateToLocal(state); // Save to local storage as fallback/cache
+        saveStateToLocal(state);
         renderAll();
-        statusEl.textContent = 'Synced with Drive ✅'; [cite_start]// [cite: 155]
+        if(statusEl) statusEl.textContent = 'Synced with Drive ✅';
       } else {
-        statusEl.textContent = 'No file found on Drive. Using local data.'; [cite_start]// [cite: 156]
+        if(statusEl) statusEl.textContent = 'No file found on Drive. Using local data.';
       }
     } catch (error) {
-      console.error("Error loading from Drive:", error);
-      statusEl.textContent = 'Sync failed. Check console.'; [cite_start]// [cite: 157]
+      if(statusEl) statusEl.textContent = 'Sync failed. Check console.';
     }
   }
 
   async function saveToDrive() {
-    const statusEl = $('#syncStatus');
-    statusEl.textContent = 'Syncing...'; [cite_start]// [cite: 158]
+    const statusEl = document.getElementById('syncStatus');
+    if(statusEl) statusEl.textContent = 'Syncing...';
     try {
       const fileId = await findFileInDrive();
-      const content = JSON.stringify(state, null, 2); [cite_start]// [cite: 159]
-      const metadata = {
-        'name': SYNC_FILE_NAME,
-        'mimeType': 'application/json',
-      };
-      // Add the appDataFolder parent only when creating a new file
-      [cite_start]if (!fileId) { // [cite: 160]
-        metadata.parents = ['appDataFolder'];
-      }
-
+      const content = JSON.stringify(state, null, 2);
+      const metadata = { name: SYNC_FILE_NAME, mimeType: 'application/json' };
+      if (!fileId) metadata.parents = ['appDataFolder'];
       const form = new FormData();
       form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-      form.append('file', new Blob([content], { type: 'application/json' })); [cite_start]// [cite: 162]
-
+      form.append('file', new Blob([content], { type: 'application/json' }));
       const method = fileId ? 'PATCH' : 'POST';
-      const path = fileId ? `/upload/drive/v3/files/${fileId}` : '/upload/drive/v3/files'; [cite_start]// [cite: 163]
-
+      const path = fileId ? `/upload/drive/v3/files/${fileId}` : '/upload/drive/v3/files';
       await gapi.client.request({
         path: path,
         method: method,
@@ -144,12 +121,22 @@
         headers: { 'Content-Type': 'multipart/related;' },
         body: form
       });
-      statusEl.textContent = 'Synced with Drive ✅'; [cite_start]// [cite: 164]
+      if(statusEl) statusEl.textContent = 'Synced with Drive ✅';
     } catch (error) {
-      console.error("Error saving to Drive:", error);
-      statusEl.textContent = 'Sync failed. Check console.'; [cite_start]// [cite: 165]
+      if(statusEl) statusEl.textContent = 'Sync failed. Check console.';
     }
   }
+
+  // Save state to local and drive
+  const saveState = () => {
+    saveStateToLocal(state);
+    if (gapi.client.getToken()) saveToDrive();
+  };
+
+  // On initial load, reflect sign-in status in UI
+  function initGoogleAuthUI(){ showLoginStatus(!!gapi.client.getToken()); }
+  document.addEventListener("DOMContentLoaded", initGoogleAuthUI);
+
 </script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
