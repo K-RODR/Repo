@@ -532,5 +532,9 @@
     init();
   </script>
 <script async defer onload="handleClientLoad()" src="https://apis.google.com/js/api.js"></script>
+<button id="signInBtn">Sign in with Google</button>
+<span id="userEmail"></span>
+<button id="signOutBtn" class="hidden">Sign out</button>
+<div id="syncStatus"></div>
 </body>
 </html>
