@@ -60,7 +60,7 @@
       }
     }
   }
-'''
+
   function handleAuthClick() {
     if (gapi.auth2.getAuthInstance().isSignedIn.get()) {
         gapi.auth2.getAuthInstance().signOut();
@@ -153,6 +153,7 @@
       statusEl.textContent = 'Sync failed. Check console.';
     }
   }
+  '''
 </script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
